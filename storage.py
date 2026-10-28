@@ -15,7 +15,7 @@ from typing import Dict, List, Any, Optional
 from PIL import Image
 from classifier import GATE_SUBJECTS
 
-DEFAULT_BASE_DIR = os.path.expanduser("~/gate_cse_notes")
+DEFAULT_BASE_DIR = os.getenv("STORAGE_DIR", os.path.expanduser("~/gate_cse_notes"))
 
 class GATEStorage:
     def __init__(self, base_dir: str = DEFAULT_BASE_DIR):
