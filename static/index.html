@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GATE CSE Screenshot Organizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-6 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-xl">
+          G
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg tracking-tight text-white">GATE-Snap</h1>
+            <span class="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">CSE Edition</span>
+          </div>
+          <p class="text-xs text-slate-400">Paste screenshots to automatically classify & organize by GATE subjects</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Storage Path Pill -->
+        <button id="btnOpenFolder" title="Open notes folder in file manager" class="hidden sm:flex items-center gap-2 text-xs bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+          <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span id="storagePathBadge" class="truncate max-w-[200px]">~/gate_cse_notes</span>
+          <i data-lucide="external-link" class="w-3 h-3 text-slate-500"></i>
+        </button>
+
+        <!-- Export ZIP -->
+        <a href="/api/export-zip" download title="Download all notes as ZIP" class="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition-colors">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span class="hidden md:inline">Export ZIP</span>
+        </a>
+
+        <!-- Settings Button -->
+        <button id="btnSettings" title="Settings & AI Configuration" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition-colors">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="border-b border-slate-800 bg-slate-900/30 px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <nav class="flex space-x-1 py-2">
+        <button id="tabCapture" class="tab-btn active flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all text-white bg-indigo-600/20 border border-indigo-500/40">
+          <i data-lucide="clipboard-paste" class="w-4 h-4 text-indigo-400"></i>
+          Paste & Classify
+        </button>
+        <button id="tabExplorer" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="folder-tree" class="w-4 h-4 text-emerald-400"></i>
+          Subject Folders (<span id="totalScreenshotsCount">0</span>)
+        </button>
+        <button id="tabStats" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
+          <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-400"></i>
+          Syllabus Distribution
+        </button>
+      </nav>
+
+      <!-- Auto-save Toggle -->
+      <div class="flex items-center gap-2 text-xs text-slate-300">
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="autoSaveToggle" class="sr-only peer">
+          <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+          <span class="ml-2 font-medium">Auto-Save on Paste</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6">
+
+    <!-- TAB 1: CAPTURE & PASTE -->
+    <section id="sectionCapture" class="space-y-6">
+      
+      <!-- Paste Banner / Dropzone -->
+      <div id="pasteZone" tabindex="0" class="group relative rounded-2xl border-2 border-dashed border-indigo-500/40 hover:border-indigo-500 bg-gradient-to-b from-indigo-950/20 via-slate-900/40 to-slate-950/60 p-8 text-center transition-all cursor-pointer shadow-xl shadow-indigo-950/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+        <div class="flex flex-col items-center justify-center space-y-3">
+          <div class="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-500/20 transition-all duration-300">
+            <i data-lucide="clipboard" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-white tracking-tight">Press <kbd class="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-indigo-300 font-mono text-sm shadow-sm">Ctrl + V</kbd> to Paste Screenshot Anywhere</h2>
+            <p class="text-sm text-slate-400 mt-1">Or click to select image file / drag & drop screenshot here</p>
+          </div>
+          <div class="flex items-center gap-3 pt-2">
+            <button type="button" id="btnBrowseFile" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-1.5 transition-colors">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+              Browse Image
+            </button>
+            <button type="button" id="btnPasteClipboard" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/30">
+              <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i>
+              Paste from Clipboard
+            </button>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" class="hidden">
+        </div>
+      </div>
+
+      <!-- Processing State Spinner -->
+      <div id="processingCard" class="hidden rounded-2xl border border-indigo-500/30 bg-slate-900/60 p-8 text-center space-y-3">
+        <div class="inline-block animate-spin text-indigo-400">
+          <i data-lucide="loader-2" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-base font-semibold text-white">Analyzing GATE CSE Subject...</h3>
+        <p class="text-xs text-slate-400">Extracting formulas, keywords, and matching against 1,000+ GATE syllabus topics</p>
+      </div>
+
+      <!-- Analysis & Review Card (Visible when screenshot is captured) -->
+      <div id="reviewCard" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-900/40 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
+        
+        <!-- Left Column: Image Preview -->
+        <div class="lg:col-span-5 flex flex-col space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="image" class="w-3.5 h-3.5 text-indigo-400"></i>
+              Screenshot Preview
+            </span>
+            <span id="imgDimensions" class="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded">0x0</span>
+          </div>
+
+          <div class="relative rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 flex items-center justify-center max-h-[460px] group">
+            <img id="previewImg" src="" alt="Screenshot" class="w-full h-auto object-contain max-h-[460px] rounded-lg">
+            <button id="btnZoomPreview" class="absolute bottom-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700">
+              <i data-lucide="maximize-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Quick Discard -->
+          <button id="btnDiscard" class="text-xs text-slate-400 hover:text-rose-400 py-1 transition-colors flex items-center justify-center gap-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            Discard this screenshot
+          </button>
+        </div>
+
+        <!-- Right Column: Subject Classification & Target Folder Form -->
+        <div class="lg:col-span-7 flex flex-col justify-between space-y-5">
+          
+          <div class="space-y-4">
+            
+            <!-- Subject Detection Result Banner -->
+            <div id="subjectBadgeCard" class="p-4 rounded-xl border border-indigo-500/30 bg-indigo-950/20 flex items-start justify-between gap-4">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span id="subjectCodePill" class="text-xs font-black uppercase px-2 py-0.5 rounded bg-indigo-500 text-white">OS</span>
+                  <h3 id="detectedSubjectName" class="text-lg font-bold text-white tracking-tight">Operating Systems</h3>
+                  <span id="aiBadge" class="hidden text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-semibold">Gemini AI</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                  <span>Subtopic: <strong id="detectedSubtopic" class="text-slate-200">Deadlocks & Banker's Algorithm</strong></span>
+                </div>
+              </div>
+
+              <!-- Confidence Meter -->
+              <div class="text-right">
+                <div class="text-xs text-slate-400">Confidence</div>
+                <div id="confidenceScore" class="text-lg font-black text-emerald-400">92%</div>
+              </div>
+            </div>
+
+            <!-- Target Folder Preview -->
+            <div class="flex items-center gap-2 bg-slate-950/60 border border-slate-800 p-2.5 rounded-xl text-xs">
+              <i data-lucide="folder-check" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+              <span class="text-slate-400">Destination:</span>
+              <span id="targetFolderPath" class="font-mono text-emerald-300 truncate">~/gate_cse_notes/Operating_Systems/</span>
+            </div>
+
+            <!-- Subject Override Selector -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">Change / Confirm Subject Folder:</label>
+              <select id="subjectSelect" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <!-- Matched Keywords Chips -->
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Detected GATE CSE Terms & Triggers:</label>
+              <div id="keywordsChips" class="flex flex-wrap gap-1.5">
+                <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Banker's Algorithm</span>
+              </div>
+            </div>
+
+            <!-- Subtopic / Tags / Notes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Subtopic / Topic Tag:</label>
+                <input type="text" id="inputSubtopic" placeholder="e.g. Banker's Algorithm, LRU, B+ Tree" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Custom Tags (comma separated):</label>
+                <input type="text" id="inputTags" placeholder="e.g. PYQ2024, TestSeries, Formula" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Personal Notes / Problem Solution Summary:</label>
+              <textarea id="inputNotes" rows="2" placeholder="e.g. Remember: Total instances = Allocated + Available. Safe sequence calculation trick..." class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <!-- OCR Text Accordion -->
+            <details class="bg-slate-950/40 border border-slate-800 rounded-xl text-xs overflow-hidden">
+              <summary class="px-3 py-2 font-medium text-slate-400 hover:text-slate-200 cursor-pointer flex items-center justify-between">
+                <span>View Extracted OCR Text</span>
+                <span class="text-[10px] text-slate-500">Click to expand</span>
+              </summary>
+              <div class="p-3 border-t border-slate-800 bg-slate-950/80">
+                <textarea id="ocrTextView" rows="3" class="w-full bg-transparent font-mono text-[11px] text-slate-300 border-0 focus:outline-none resize-y"></textarea>
+              </div>
+            </details>
+          </div>
+
+          <!-- Save Button Bar -->
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" id="btnCancelCapture" class="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors">
+              Cancel
+            </button>
+            <button type="button" id="btnSaveScreenshot" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              Save to Subject Folder (<kbd class="px-1.5 py-0.5 bg-indigo-700 rounded text-[10px] font-mono">Enter</kbd>)
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Quick Recent Saves List -->
+      <div id="recentSavesSection" class="space-y-3 pt-4">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-400"></i>
+          Recently Saved Screenshots
+        </h3>
+        <div id="recentGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 2: SUBJECT FOLDER EXPLORER -->
+    <section id="sectionExplorer" class="hidden space-y-6">
+      
+      <!-- Explorer Top Bar: Search & Filter -->
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/60 border border-slate-800 p-4 rounded-2xl">
+        
+        <!-- Search Input -->
+        <div class="relative w-full md:w-96">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="searchNotesInput" placeholder="Search across all screenshots & OCR..." class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+          <!-- Filter by Subject Dropdown -->
+          <select id="filterSubjectSelect" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">All Subjects</option>
+            <!-- Populated dynamically -->
+          </select>
+
+          <!-- Refresh Button -->
+          <button id="btnRefreshExplorer" title="Refresh" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Subject Cards Grid -->
+      <div id="subjectCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Screenshots Gallery for Selected Subject or Search -->
+      <div id="galleryContainer" class="space-y-4 pt-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 id="galleryTitle" class="text-base font-bold text-white">All Screenshots</h3>
+            <p id="gallerySubtitle" class="text-xs text-slate-400">Showing all saved screenshots</p>
+          </div>
+          <span id="galleryCountBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">0 items</span>
+        </div>
+
+        <!-- Grid of Screenshot Cards -->
+        <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="galleryEmptyState" class="hidden py-16 text-center space-y-3">
+          <div class="w-12 h-12 rounded-2xl bg-slate-800/80 flex items-center justify-center mx-auto text-slate-500">
+            <i data-lucide="image-off" class="w-6 h-6"></i>
+          </div>
+          <h4 class="text-sm font-semibold text-slate-300">No screenshots found</h4>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto">Paste a screenshot in the "Paste & Classify" tab to get started.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 3: SYLLABUS DISTRIBUTION & STATS -->
+    <section id="sectionStats" class="hidden space-y-6">
+      <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+        <h3 class="text-base font-bold text-white mb-1">GATE CSE Preparation Distribution</h3>
+        <p class="text-xs text-slate-400 mb-6">See how your notes and doubt screenshots are distributed across subjects</p>
+
+        <div id="statsBarsContainer" class="space-y-4 max-w-3xl">
+          <!-- Dynamic Progress Bars -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- LIGHTBOX / FULLSCREEN MODAL -->
+  <div id="lightboxModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="relative max-w-5xl w-full max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-3.5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span id="modalSubjectPill" class="text-xs font-bold uppercase px-2 py-0.5 rounded bg-indigo-500 text-white">OS</span>
+          <h4 id="modalTitle" class="text-sm font-bold text-white truncate max-w-md">Screenshot Details</h4>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="modalBtnDownload" title="Download" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+          <button id="modalBtnDelete" title="Delete" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+          <button id="modalBtnClose" title="Close" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-12 gap-4 p-6">
+        
+        <!-- Image View -->
+        <div class="md:col-span-8 flex items-center justify-center bg-slate-950 rounded-xl p-2 border border-slate-800/80 max-h-[65vh]">
+          <img id="modalImg" src="" alt="Screenshot" class="max-h-[60vh] max-w-full object-contain rounded">
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="md:col-span-4 flex flex-col space-y-4 text-xs">
+          <div>
+            <span class="text-slate-400">Subject:</span>
+            <div id="modalSubjectName" class="text-sm font-bold text-white">Operating Systems</div>
+          </div>
+
+          <div>
+            <span class="text-slate-400">Subtopic:</span>
+            <div id="modalSubtopic" class="font-medium text-slate-200">Deadlocks & Banker's Algorithm</div>
+          </div>
+
+          <div>
+            <span class="text-slate-400">Created:</span>
+            <div id="modalDate" class="text-slate-300 font-mono">2026-10-28 10:30</div>
+          </div>
+
+          <!-- Reassign Subject -->
+          <div class="pt-2 border-t border-slate-800">
+            <label class="block text-slate-400 mb-1">Move to another subject folder:</label>
+            <div class="flex gap-1.5">
+              <select id="modalMoveSelect" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200">
+              </select>
+              <button id="btnModalMoveConfirm" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors">
+                Move
+              </button>
+            </div>
+          </div>
+
+          <!-- OCR Text Box -->
+          <div class="flex-1 flex flex-col pt-2 border-t border-slate-800">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-slate-400">OCR Extracted Text:</span>
+              <button id="btnCopyOcr" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 text-[11px]">
+                <i data-lucide="copy" class="w-3 h-3"></i> Copy
+              </button>
+            </div>
+            <textarea id="modalOcrText" readonly rows="5" class="w-full bg-slate-950/80 border border-slate-800 rounded-lg p-2 font-mono text-[11px] text-slate-300 flex-1 resize-none"></textarea>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="settings" class="w-4 h-4 text-indigo-400"></i>
+          Settings & AI Configuration
+        </h3>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Root Storage Directory:</label>
+          <input type="text" id="settingBaseDir" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono text-xs focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[11px] text-slate-500 mt-1">Folders for each GATE CSE subject will be created inside this path.</p>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="font-medium text-slate-300">Gemini API Key (Optional):</label>
+            <span id="geminiKeyStatus" class="text-[10px] text-amber-400 font-medium">Offline (OCR Only)</span>
+          </div>
+          <input type="password" id="settingGeminiKey" placeholder="AIzaSy..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono text-xs focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[11px] text-slate-500 mt-1">If provided, enables deep multimodal Vision analysis, LaTeX transcription, and syllabus mapping.</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+        <button id="btnSaveSettings" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-xs transition-colors">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs">
+    <i id="toastIcon" data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMsg">Screenshot organized successfully!</span>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

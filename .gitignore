@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables & secrets
+.env
+.env.*
+*.key
+
+# Local notes storage / User screenshots
+gate_cse_notes/
+*.png
+*.jpg
+*.jpeg
+*.webp
+!static/**
+
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
