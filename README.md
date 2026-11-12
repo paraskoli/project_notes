@@ -6,17 +6,21 @@ An intelligent application designed specifically for **GATE Computer Science & E
 
 ## 🚀 Quick Start
 
-### 1. Launch the Web Application
-Run the launcher script:
+You can run GATE-Snap either with **Streamlit** or with **FastAPI**:
+
+### Option A: Launch with Streamlit (Local & Streamlit Community Cloud)
 ```bash
-cd /home/aiteam/gate_cse_screenshot_organizer
-./start.sh
+streamlit run streamlit_app.py
 ```
-Or run directly with Python:
+*(Running `streamlit run app.py` is also supported)*
+
+### Option B: Launch with FastAPI
 ```bash
+./start.sh
+# or directly:
 python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
 ```
-Open **[http://localhost:8000](http://localhost:8000)** in your browser.
+Open **[http://localhost:8000](http://localhost:8000)** (or the port shown in your terminal) in your browser.
 
 ---
 

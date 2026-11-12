@@ -1,6 +1,6 @@
 """
-FastAPI Server for GATE CSE Screenshot Organizer.
-Provides REST APIs and serves interactive web application.
+FastAPI Server & Streamlit Entry for GATE CSE Screenshot Organizer.
+Provides REST APIs for the web UI and seamlessly runs under Streamlit.
 """
 
 import os
@@ -9,6 +9,20 @@ import base64
 import subprocess
 from pathlib import Path
 from typing import Optional, List
+
+# Check if running inside Streamlit runner (e.g. `streamlit run app.py`)
+try:
+    from streamlit.runtime import exists as _st_exists
+    _is_streamlit = _st_exists()
+except Exception:
+    _is_streamlit = False
+
+if _is_streamlit:
+    import streamlit_app
+    streamlit_app.main()
+    import streamlit as st
+    st.stop()
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Response
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -224,7 +238,7 @@ async def open_folder(subject_id: Optional[str] = Query(None)):
     return JSONResponse(content={"success": False, "path": str(target)})
 
 
-if __name__ == "__main__":
+if not _is_streamlit and __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
